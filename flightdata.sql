@@ -133,8 +133,40 @@ group by passengerid
 select p.name,cte.firstflight,cte.last_flight,cte.totalflights
 from cte_flight cte
 join passengers p on
-cte.passengerid=p.passengerid
+cte.passengerid=p.passengerid;
 
+
+-- find flights with the highest price ticket sold for each route
+-- (origin | destination)
+
+SELECT
+    f.FlightID,
+    f.Origin,
+    f.Destination,
+    t.TicketID,
+    t.Price,
+    dense_rank() OVER (PARTITION BY f.Origin, f.Destination ORDER BY t.Price DESC) AS rn
+FROM Tickets t
+JOIN Flights f ON t.FlightID = f.FlightID;
+
+-- find the highest spending passanger in each frequent flyer
+-- status group
+with cte_spending as(
+select *,
+rank() over(partition by frequentflyerstatus order by totalspent desc) as rn from
+(select p.passengerid,p.name,p.frequentflyerstatus,sum(t.price) as totalspent
+from passengers p
+join tickets t
+on p.passengerid=t.passengerid
+group by p.passengerid,p.name,p.frequentflyerstatus) as t
+)
+select name,frequentflyerstatus,totalspent
+from cte_spending
+where rn=1;
+
+
+
+SELECT VERSION();
 
 INSERT INTO Airlines (AirlineID, Name, Country) VALUES
 (1, 'Air India', 'India'),
@@ -143,6 +175,8 @@ INSERT INTO Airlines (AirlineID, Name, Country) VALUES
 (4, 'Delta Airlines', 'USA'),
 (5, 'IndiGo', 'India');
 
+select *from airlines;
+select *from flights;
 
 INSERT INTO Flights (FlightID, Origin, Destination, DepartureTime, ArrivalTime, AirlineID) VALUES
 (101, 1, 3, '2025-08-01 06:00', '2025-08-01 12:00', 1),
